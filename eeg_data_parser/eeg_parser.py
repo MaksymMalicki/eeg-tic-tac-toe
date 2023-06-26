@@ -1,4 +1,4 @@
-class EegDataParser:
+class EegParser:
     def __init__(self):
         self.SYNC_STATE = 1
         self.P_LENGTH_STATE = 2
