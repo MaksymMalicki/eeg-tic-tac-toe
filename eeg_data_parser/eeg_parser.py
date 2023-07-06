@@ -1,16 +1,27 @@
 class EegParser:
     def __init__(self):
+        ## helper states
         self.SYNC_STATE = 1
         self.P_LENGTH_STATE = 2
         self.PAYLOAD_STATE = 3
         self.CHECKSUM_STATE = 4
+        self.V_LENGTH_STATE = 5
 
+        ## helper attributes
         self.current_state = self.SYNC_STATE
+        self.v_length = 1
+        self.v_length_counter = 0
+        self.payload_length_counter = 0
+        self.is_code = True
+        self.current_data = []
 
-        self.sync_byte = 170 #0xAA
+        # data bytes
+        self.sync_byte = 170  # 0xAA
         self.sync_bytes_count = 0
         self.payload_length = None
+        self.payload_data_counter = 0
         self.payload_data = []
+        self.payload_codes = []
         self.checksum = None
 
     def parse_eeg_data(self, packet):
@@ -29,9 +40,38 @@ class EegParser:
                 self.current_state = self.PAYLOAD_STATE
 
             elif self.current_state == self.PAYLOAD_STATE:
-                self.payload_data.append(byte)
-                if len(self.payload_data) == self.payload_length:
+                # The code is always sent first, that's why is_code is True by default
+                # If the code was sent, whe check if it's greater than 0x7F
+                # If yes, then we have extended code, and we assign the custom v_length in the V_LENGTH_STATE
+                # If not, then the next byte will be data byte, that's why v_length == 1
+                print(self.is_code, byte)
+                if self.is_code:
+                    if byte > 127:
+                        self.current_state = self.V_LENGTH_STATE
+                    else:
+                        self.v_length = 1
+                    self.is_code = not self.is_code
+                    self.payload_codes.append(byte)
+                else:
+                    if self.v_length_counter < self.v_length:
+                        self.current_data.append(byte)
+                        self.v_length_counter += 1
+                    else:
+                        self.v_length = 1
+                        self.v_length_counter = 0
+                        self.is_code = not self.is_code
+                        self.payload_data.append(self.current_data)
+                        self.current_data = []
+                self.payload_length_counter += 1
+                if self.payload_length_counter == self.payload_length:
                     self.current_state = self.CHECKSUM_STATE
+                    self.v_length = 1
+                    self.v_length_counter = 0
+                    self.is_code = True
+
+            elif self.current_state == self.V_LENGTH_STATE:
+                self.v_length = byte
+                self.current_state = self.PAYLOAD_STATE
 
             elif self.current_state == self.CHECKSUM_STATE:
                 self.checksum = byte
