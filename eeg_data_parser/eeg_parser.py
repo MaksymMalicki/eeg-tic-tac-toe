@@ -44,7 +44,6 @@ class EegParser:
                 # If the code was sent, whe check if it's greater than 0x7F
                 # If yes, then we have extended code, and we assign the custom v_length in the V_LENGTH_STATE
                 # If not, then the next byte will be data byte, that's why v_length == 1
-                print(self.is_code, byte)
                 if self.is_code:
                     if byte > 127:
                         self.current_state = self.V_LENGTH_STATE
@@ -53,14 +52,15 @@ class EegParser:
                     self.is_code = not self.is_code
                     self.payload_codes.append(byte)
                 else:
-                    if self.v_length_counter < self.v_length:
-                        self.current_data.append(byte)
-                        self.v_length_counter += 1
-                    else:
-                        self.v_length = 1
-                        self.v_length_counter = 0
+                    self.current_data.append(byte)
+                    self.v_length_counter += 1
+                    if self.v_length_counter == self.v_length:
+                        # setting
                         self.is_code = not self.is_code
                         self.payload_data.append(self.current_data)
+
+                        # resetting
+                        self.v_length_counter = 0
                         self.current_data = []
                 self.payload_length_counter += 1
                 if self.payload_length_counter == self.payload_length:
@@ -75,7 +75,8 @@ class EegParser:
 
             elif self.current_state == self.CHECKSUM_STATE:
                 self.checksum = byte
-                calculated_checksum = sum(self.payload_data) ^ 0xFF
+                # summing all elements in 2d array
+                calculated_checksum = sum(element for data_row in self.payload_data for element in data_row) ^ 0xFF
                 if self.checksum == calculated_checksum:
                     print(self.checksum, self.payload_length, self.payload_data)
                 self.sync_bytes_count = 0

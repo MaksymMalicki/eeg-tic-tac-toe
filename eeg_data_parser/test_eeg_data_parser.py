@@ -11,7 +11,7 @@ class TestEegDataParser(unittest.TestCase):
         self.assertEqual(parser.current_state, parser.CHECKSUM_STATE)
         self.assertEqual(parser.payload_length, 4)
         self.assertEqual(parser.payload_codes, [1, 3])
-        self.assertEqual(parser.payload_data, [2, 4, ])
+        self.assertEqual(parser.payload_data, [[2], [4], ])
 
     def test_parse_eeg_data_multiple_packets(self):
         parser = EegParser()
