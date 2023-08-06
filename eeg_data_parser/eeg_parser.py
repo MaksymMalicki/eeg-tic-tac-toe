@@ -88,7 +88,8 @@ class EegParser:
                 self.sync_bytes_count = 0
                 self.payload_length = None
                 self.payload_data = []
-                self.checksum = None
+                self.checksum = 0
+                self.calculated_checksum = 0
                 self.current_state = self.SYNC_STATE
 
     def decode_eeg_code(self, code):
