@@ -4,6 +4,14 @@ from eeg_parser import EegParser
 
 class TestEegDataParser(unittest.TestCase):
 
+
+    def test_example_packet_from_docs(self):
+        parser = EegParser()
+        test_packet = b'\xaa\xaa\x08\x02\x20\x01\x7e\x04\x12\x05\x60\xe3'
+        parser.parse_eeg_data(test_packet)
+        self.assertEqual(parser.checksum, 227)
+        self.assertEqual(parser.calculated_checksum, parser.checksum)
+
     def test_parse_eeg_data_single_packet(self):
         parser = EegParser()
         test_packet = b'\xaa\xaa\x04\x01\x02\x03\x04'
