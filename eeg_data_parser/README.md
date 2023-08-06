@@ -17,7 +17,7 @@ ____________________ ____________ ___________
 ^^^^(Value Type)^^^^ ^^(length)^^ ^^(value)^^  
 1. The one in parenthesis appear only when the EXCODE (0x55) is provided
 2. If CODE<=0x7F, then VALUE is of length 1 byte.
-3. If CODE>0x7F, then VLENGTH must be provided, as the VALUE length might be grater than 1 byte.
+3. If CODE>0x7F, then VLENGTH must be provided, as the VALUE length might be greater than 1 byte.
 ### CHECKSUM
 1. Checksum is calculated as following:
    1. summing all the bytes of the Packet's Data Payload

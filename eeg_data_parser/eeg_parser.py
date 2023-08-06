@@ -26,18 +26,25 @@ class EegParser:
 
     def parse_eeg_data(self, packet):
         parsed_packet = [byte for byte in packet]
+        print(parsed_packet)
         for byte in parsed_packet:
             if self.current_state == self.SYNC_STATE:
                 if byte == self.sync_byte:
                     self.sync_bytes_count += 1
                     if self.sync_bytes_count == 2:
                         self.current_state = self.P_LENGTH_STATE
+                        print("1.SYNCED")
                 else:
                     self.sync_bytes_count = 0
+                    print("1.NOT SYNCED")
 
             elif self.current_state == self.P_LENGTH_STATE:
                 self.payload_length = byte
+                if self.payload_length > 170:       # DOCS "Step by step guide to parsing a packet"
+                    self.current_state = self.SYNC_STATE
+                    print("2.PAYLOAD TOO LARGE (PLENGTH>170)")
                 self.current_state = self.PAYLOAD_STATE
+                print(f"2.PAYLOAD LENGTH: {self.payload_length}")
 
             elif self.current_state == self.PAYLOAD_STATE:
                 # The code is always sent first, that's why is_code is True by default
@@ -47,10 +54,12 @@ class EegParser:
                 if self.is_code:
                     if byte > 127:
                         self.current_state = self.V_LENGTH_STATE
+                        print("3.EXTENDED CODE")
                     else:
                         self.v_length = 1
                     self.is_code = not self.is_code
                     self.payload_codes.append(byte)
+                    print(f"PAYLOAD CODES: {self.payload_codes}")
                 else:
                     self.current_data.append(byte)
                     self.v_length_counter += 1
@@ -58,7 +67,7 @@ class EegParser:
                         # setting
                         self.is_code = not self.is_code
                         self.payload_data.append(self.current_data)
-
+                        print(f"PAYLOAD VALUE: {self.payload_data}")
                         # resetting
                         self.v_length_counter = 0
                         self.current_data = []
@@ -72,11 +81,15 @@ class EegParser:
             elif self.current_state == self.V_LENGTH_STATE:
                 self.v_length = byte
                 self.current_state = self.PAYLOAD_STATE
+                print(f"VLENGTH: {self.v_length}")
 
             elif self.current_state == self.CHECKSUM_STATE:
                 self.checksum = byte
                 # summing all elements in 2d array
-                calculated_checksum = sum(element for data_row in self.payload_data for element in data_row) ^ 0xFF
+                calculated_checksum = sum(element for data_row in self.payload_data for element in data_row) & 0xFF
+                calculated_checksum = ~calculated_checksum & 0xFF
+                print(f"CALCULATED CHECKSUM (10): {calculated_checksum}, (bin): {bin(calculated_checksum)}")
+                print(f"CHECKSUM (10): {self.checksum}, (bin): {bin(self.checksum)}")
                 if self.checksum == calculated_checksum:
                     print(self.checksum, self.payload_length, self.payload_data)
                 self.sync_bytes_count = 0
@@ -88,21 +101,21 @@ class EegParser:
     def decode_eeg_code(self, code):
         # single byte codes
         if code == bytes(0x02):
-            print('POOR SIGNAL QUALITY 0-255')
+            print('POOR SIGNAL QUALITY: ')
         elif code == bytes(0x03):
-            pass
+            print('HEART_RATE (0-255)')
         elif code == bytes(0x04):
-            pass
+            print("ATTENTION eSense (0 to 100)")
         elif code == bytes(0x05):
-            pass
+            print("MEDITATION eSense (0 to 100)")
         elif code == bytes(0x06):
-            pass
+            print("8BIT_RAW Wave Value (0-255)")
         elif code == bytes(0x07):
-            pass
+            print("RAW_MARKER Section Start (0)")
 
         # multi byte codes
         elif code == bytes(0x80):
-            pass
+            print("RAW Wave Value: a single big-endian 16-bit two's-compliment signed")
         elif code == bytes(0x81):
             pass
         elif code == bytes(0x83):
