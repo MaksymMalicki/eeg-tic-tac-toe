@@ -23,6 +23,7 @@ class EegParser:
         self.payload_data = []
         self.payload_codes = []
         self.checksum = None
+        self.calculated_checksum = 0
 
     def parse_eeg_data(self, packet):
         parsed_packet = [byte for byte in packet]
@@ -75,9 +76,14 @@ class EegParser:
 
             elif self.current_state == self.CHECKSUM_STATE:
                 self.checksum = byte
-                # summing all elements in 2d array
-                calculated_checksum = sum(element for data_row in self.payload_data for element in data_row) ^ 0xFF
-                if self.checksum == calculated_checksum:
+                print(self.payload_data, self.payload_codes)
+                for data_row in self.payload_data:
+                    for value in data_row:
+                        self.calculated_checksum += value
+                self.calculated_checksum += sum(code for code in self.payload_codes)
+                self.calculated_checksum = (255 - self.calculated_checksum) & 0xFF
+                print(self.calculated_checksum)
+                if self.checksum == self.calculated_checksum:
                     print(self.checksum, self.payload_length, self.payload_data)
                 self.sync_bytes_count = 0
                 self.payload_length = None
